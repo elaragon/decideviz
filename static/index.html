@@ -17,9 +17,6 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 	<body>
 
 		<nav class="navbar navbar-inverse">
-                       	<img src="../static/demic.png" class="logo">
-                        <img src="../static/eurecat.png" class="logo">
-			<img src="../static/dcent.png" class="logo"> 
 			<div class="navbar-header" id="post-title"/>
 		</nav>
 
@@ -148,7 +145,7 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 
 		// Update values
 		function update() {
-			$('#post-title').text('Proposal: ' + root['title']);
+			$('#post-title').text(root['title']);
 			var nodes = flatten(root),
 			    links = d3.layout.tree().links(nodes);
 
@@ -172,22 +169,25 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 			link.exit().remove();
 				// Update the nodes…
 			node = vis.selectAll("circle.node").data(nodes, function(d) { 
-				if (d.depth!=0) {				
-				max_votes_favor_gain = Math.max(max_votes_favor_gain, d.votes_favor_count-d.votes_against_count);
-				max_votes_against_gain = Math.max(max_votes_against_gain, d.votes_against_count-d.votes_favor_count);
+				if (d.depth!=0) {
+					if ((!isNaN(d.cached_votes_up))&&(!isNaN(d.cached_votes_down))) {
+					max_votes_favor_gain = Math.max(max_votes_favor_gain, d.cached_votes_up-d.cached_votes_down);
+					max_votes_against_gain = Math.max(max_votes_against_gain, d.cached_votes_down-d.cached_votes_up);
+					}
 				}
 				return d.id;  
 			})
 			.style("fill", color);
 	
-			node.transition().attr("r", function(d) { return d.depth==0 ? 5 : 2.5 + d.size / 2; });
-
 			// Enter any new nodes.
 			node.enter().append("svg:circle")
 			    .attr("class", "node")
 			    .attr("cx", function(d) { return d.x; })
 			    .attr("cy", function(d) { return d.y; })
-			    .attr("r", function(d) { return d.depth==0 ? 5 : 2.5 + d.size / 2; })
+			    .attr("r", function(d) {
+			    	size = d.cached_votes_up + d.cached_votes_up;
+			    	return d.depth==0 ? 5 : 2.5 + size / 2; 
+			    })
 			    .style("fill", color)
 			    .attr("text", function(d) { d.message })
 			    .on("click", click)
@@ -207,10 +207,14 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 			    .attr("cy", function(d) { return d.y; })
 			    .on("mouseover", 
 				function(d){  
+					user = '';
+					try {
+						user = d.public_author.username;
+					} catch(err) {}
 					tooltip = '<div class="panel panel-primary">';
-					tooltip = tooltip + '<div class="panel-heading">' + d.ts +' &nbsp;&nbsp;' + d.user + '</div>  <div class="panel-body">   ' + d.message + '<p align="right">'+d.votes_favor_count+'&nbsp;';
+					tooltip = tooltip + '<div class="panel-heading">' + d.public_created_at.split("+")[0] +' &nbsp;&nbsp;' + user + '</div>  <div class="panel-body">   ' + d.body + '<p align="right">'+d.cached_votes_up+'&nbsp;';
 					if (d.type == 'proposal') tooltip = tooltip + 'supports';
-					else tooltip = tooltip + '<i class="fa fa-angle-up"></i>&nbsp;&nbsp;<i class="fa fa-angle-down"></i>&nbsp;'+d.votes_against_count;
+					else tooltip = tooltip + '<i class="fa fa-angle-up"></i>&nbsp;&nbsp;<i class="fa fa-angle-down"></i>&nbsp;'+d.cached_votes_down;
 					tooltip = tooltip + '</p>   </div> </div>'
 					div.html(tooltip)
 
@@ -219,18 +223,19 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 
 		// Set colors according to voting ratio
 		function color(d) {
-			var votes_favor_count = parseInt(d.votes_favor_count);
-			var votes_against_count = parseInt(d.votes_against_count);
+			var cached_votes_up = parseInt(d.cached_votes_up);
+			var cached_votes_down = parseInt(d.cached_votes_down);
 			if (d.depth==0) { return "black"; }
-			if (votes_favor_count + votes_against_count==0) { return "grey"; }
-			if (votes_favor_count > votes_against_count) { 
-				index = Math.floor(9*(votes_favor_count - votes_against_count)/ max_votes_favor_gain);
-				if ((votes_favor_count*votes_against_count!=0)&&(index<2)) return "orange";
+			if (cached_votes_up + cached_votes_down==0) { return "grey"; }
+			if (cached_votes_up > cached_votes_down) { 
+				index = Math.floor(9*(cached_votes_up - cached_votes_down)/ max_votes_favor_gain);
+				if ((cached_votes_up*cached_votes_down!=0)&&(index<2)) return "orange";
+				console.log(index);
 				return greens[index];				
 			}			
-			if (votes_against_count > votes_favor_count) { 
-				index = Math.floor(9*(votes_against_count - votes_favor_count)/ max_votes_against_gain);
-				if ((votes_favor_count*votes_against_count!=0)&&(index<2)) return "orange";
+			if (cached_votes_down > cached_votes_up) { 
+				index = Math.floor(9*(cached_votes_down - cached_votes_up)/ max_votes_against_gain);
+				if ((cached_votes_up*cached_votes_down!=0)&&(index<2)) return "orange";
 				return reds[index];
 			}
 			return "orange";
@@ -238,14 +243,14 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 
 		// Toggle children on click.
 		function click(d) {
-			if (d.children) {
+			/*if (d.children) {
 			  d._children = d.children;
 			  d.children = null;
 			} else {
 			  d.children = d._children;
 			  d._children = null;
 			}
-			update();
+			update();*/
 		}
 
 		// Returns a list of all nodes under the root.
