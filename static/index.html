@@ -230,7 +230,6 @@ Based on Collapsible Force Layout http://bl.ocks.org/mbostock/1062288
 			if (cached_votes_up > cached_votes_down) { 
 				index = Math.floor(9*(cached_votes_up - cached_votes_down)/ max_votes_favor_gain);
 				if ((cached_votes_up*cached_votes_down!=0)&&(index<2)) return "orange";
-				console.log(index);
 				return greens[index];				
 			}			
 			if (cached_votes_down > cached_votes_up) { 
